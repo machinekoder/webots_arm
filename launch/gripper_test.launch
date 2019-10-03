@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- start Webots -->
+  <arg name="no-gui" default="false," doc="Start Webots with minimal GUI"/>
+  <include file="$(find webots_ros)/launch/webots.launch">
+    <arg name="mode" value="realtime"/>
+    <arg name="no-gui" value="$(arg no-gui)"/>
+    <arg name="world" value="$(env HOME)/projects/webots/borunte/worlds/gripper.wbt"/>
+  </include>
+
+    <node name="gripper_control" pkg="webots_arm" type="gripper_control" output="screen" required="true" />
+  <!-- </group> -->
+</launch>

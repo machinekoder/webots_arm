@@ -1,0 +1,139 @@
+#!/usr/bin/env python
+# coding=utf-8
+import time
+
+import rospy
+from std_msgs.msg import String, Bool
+from webots_ros.msg import Int8Stamped
+from webots_ros.srv import (
+    set_float,
+    set_int,
+    set_bool,
+    set_floatRequest,
+    set_intRequest,
+    set_boolRequest,
+)
+
+
+class GripperControlNode(object):
+    NODE_NAME = 'gripper_control_node'
+    OPEN_POS = 0.0129
+    CLOSED_POS = 0.0
+    TIME_STEP = 16
+
+    def __init__(self):
+        self._model_name = ''
+        self._subs = []
+        self._motors = []
+        self._time_step = None
+        self._enable_presence_sensor = None
+        self._lock_connector = None
+        self._last_open = None
+        self._open = False
+        self._locked = False
+        self._lock_pending = False
+        self._timer = None
+
+    def _on_digital_io_received(self, msg):
+        self._open = msg.data
+
+    def _on_presence_received(self, msg):
+        rospy.logdebug('presence received {}'.format(msg))
+        #if msg.data == 1 and not self._locked:
+        #    self._lock_pending = True
+
+    def _actuate_gripper(self, open_):
+        # res = self._enable_presence_sensor(
+        #     set_intRequest(value=(self.TIME_STEP if not open_ else 0))
+        # )
+        # rospy.loginfo('enabling presence sensor {}'.format(res.success))
+        # if open_:
+        #     rospy.loginfo('unlocking')
+        #     self._lock_pending = False
+        #     self._lock_connector_call(False)
+        # else:
+        #     def request_lock(_):
+        #         self._lock_pending = True
+        #     self._timer = rospy.Timer(rospy.Duration(0, int(5e8)), request_lock, oneshot=True)
+        gripper_pos = self.OPEN_POS if open_ else self.CLOSED_POS
+        rospy.logdebug('Setting gripper to {}'.format(gripper_pos))
+        for set_position in self._motors:
+            _ = set_position(set_floatRequest(value=gripper_pos))
+
+    def _lock_connector_call(self, lock):
+        rospy.logdebug('Locking connector {}'.format(lock))
+        self._locked = lock
+        self._lock_pending = False
+        _ = self._lock_connector(set_boolRequest(value=lock))
+
+    def start(self):
+        rospy.init_node(
+            self.NODE_NAME
+        )  # Note: we must init the node after forking the interpreter process
+
+        msg = rospy.wait_for_message('model_name', String, timeout=5.0)
+        self._model_name = msg.data
+        rospy.loginfo('Using robot model {}'.format(self._model_name))
+
+        # self._time_step = rospy.ServiceProxy(
+        #     self._model_name + '/robot/time_step', set_int
+        # )
+        # self._time_step.wait_for_service(timeout=5.0)
+        # self._time_step(set_intRequest(value=self.TIME_STEP))
+
+        srv = rospy.ServiceProxy(
+            self._model_name + '/gripper_finger_1/set_position', set_float
+        )
+        srv.wait_for_service(timeout=5.0)
+        self._motors.append(srv)
+        self._motors.append(
+            rospy.ServiceProxy(
+                self._model_name + '/gripper_finger_2/set_position', set_float
+            )
+        )
+
+        # self._enable_presence_sensor = rospy.ServiceProxy(
+        #     self._model_name
+        #     + '/gripper_finger_connector/presence_sensor/enable',
+        #     set_int,
+        # )
+        # self._enable_presence_sensor.wait_for_service(timeout=5.0)
+        # self._lock_connector = rospy.ServiceProxy(
+        #     self._model_name + '/gripper_finger_connector/lock', set_bool
+        # )
+
+        self._subs.append(
+            rospy.Subscriber(
+                '/hal_io/digital_out_1', Bool, self._on_digital_io_received
+            )
+        )
+        # self._subs.append(
+        #     rospy.Subscriber(
+        #         self._model_name + '/gripper_finger_connector/presence',
+        #         Int8Stamped,
+        #         self._on_presence_received,
+        #     )
+        # )
+
+    def spin(self):
+        while not rospy.is_shutdown():
+            # note: ServiceProxy is not thread-safe
+            # so we need to call it here in the main thread
+            if self._open is not self._last_open:
+                self._actuate_gripper(self._open)
+                self._last_open = self._open
+            if self._lock_pending:
+                self._lock_connector_call(True)
+            # self._time_step(set_intRequest(value=self.TIME_STEP))
+            time.sleep(0.01)
+
+    def stop(self):
+        for sub in self._subs:
+            sub.unregister()
+
+
+if __name__ == '__main__':
+    node = GripperControlNode()
+    node.start()
+    node.spin()
+    node.stop()
