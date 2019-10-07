@@ -52,13 +52,16 @@ namespace webots_arm {
         // from being bundled together, increasing the latency of one of the messages.
         ros::TransportHints transport_hints;
         transport_hints.tcpNoDelay(true);
-        // subscribe to joint state
-        joint_state_sub_ = n.subscribe("joint_states", 1, &JointControl::callbackJointState, this, transport_hints);
+
 
         for (auto &joint : model.joints_) {
             if (joint.second->type == urdf::Joint::FIXED) {
                 continue;
             }
+            // subscribe to joint state
+            boost::function<void (const JointStateConstPtr&)> f (boost::bind(&JointControl::callbackJointState, this, _1, joint.first));
+            joint_state_subs_.push_back(n.subscribe("joint_states", 1, f, VoidConstPtr(), transport_hints));
+            // create service client
             joint_position_clients_[joint.first] = n.serviceClient<webots_ros::set_float>(
                     model_name_ + "/" + joint.first + "/set_position");
             ROS_INFO_STREAM("created joint position client " << joint.first);
@@ -67,7 +70,7 @@ namespace webots_arm {
 
     JointControl::~JointControl() = default;
 
-    void JointControl::callbackJointState(const JointStateConstPtr &state) {
+    void JointControl::callbackJointState(const JointStateConstPtr &state, const std::string &name) {
         if (state->name.size() != state->position.size()) {
             if (state->position.empty()) {
                 const int throttleSeconds = 300;
@@ -84,10 +87,10 @@ namespace webots_arm {
 
         webots_ros::set_float jointSrv;
         for (size_t i = 0; i < state->name.size(); i++) {
-            const auto &name = state->name[i];
-            if (joint_position_clients_.count(name)) {
+            if (state->name[i] == name) {
                 jointSrv.request.value = state->position[i];
                 joint_position_clients_.at(name).call(jointSrv);
+                break;
             }
         }
     }

@@ -24,9 +24,9 @@ namespace webots_arm {
         ~JointControl();
 
     protected:
-        virtual void callbackJointState(const JointStateConstPtr &state);
+        virtual void callbackJointState(const JointStateConstPtr &state, const std::string &name);
 
-        Subscriber joint_state_sub_;
+        std::vector<Subscriber> joint_state_subs_;
         std::string model_name_;
 
         std::map<std::string, ros::ServiceClient> joint_position_clients_;

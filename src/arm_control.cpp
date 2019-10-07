@@ -15,8 +15,6 @@ using namespace std;
 using namespace ros;
 
 void quit(int sig) {
-    //setTimeStepSrv.request.value = 0;
-    //setTimeStepClient.call(setTimeStepSrv);
     ROS_INFO("User stopped the 'joint_control' node.");
     ros::shutdown();
     exit(0);
@@ -66,7 +64,9 @@ int main(int argc, char **argv) {
 
     webots_arm::JointControl joint_control(modelName, model);
     webots_arm::CameraControl camera_control(modelName);
-    ros::spin();
+    ros::AsyncSpinner spinner(8);
+    spinner.start();
+    ros::waitForShutdown();
 
     return 0;
 }
