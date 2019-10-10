@@ -68,11 +68,11 @@ class GripperControlNode(object):
     def start(self):
         rospy.init_node(
             self.NODE_NAME
-        )  # Note: we must init the node after forking the interpreter process
+        )
 
         msg = rospy.wait_for_message('model_name', String, timeout=5.0)
         self._model_name = msg.data
-        rospy.loginfo('Using robot model {}'.format(self._model_name))
+        rospy.logdebug('Using robot model {}'.format(self._model_name))
 
         srv = rospy.ServiceProxy(
             self._model_name + '/gripper_finger_1/set_position', set_float

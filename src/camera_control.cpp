@@ -4,6 +4,7 @@
 #include <boost/assign/list_of.hpp>
 
 #include <ros/ros.h>
+#include <std_msgs/String.h>
 #include <camera_info_manager/camera_info_manager.h>
 
 #include <webots_ros/set_int.h>
@@ -138,4 +139,22 @@ namespace webots_arm {
     }
 
     CameraControl::~CameraControl() = default;
+}
+
+////////////////////////////////////////////
+// Main
+int main(int argc, char **argv) {
+    std::string controllerName;
+    ros::init(argc, argv, "camera_control", ros::init_options::AnonymousName);
+
+    const auto &msg = ros::topic::waitForMessage<std_msgs::String>("model_name", ros::Duration(5));
+    std::string modelName = msg->data;
+    ROS_DEBUG_STREAM("Using robot model " << modelName);
+
+    webots_arm::CameraControl cameraControl(modelName);
+    ros::AsyncSpinner spinner(2);
+    spinner.start();
+    ros::waitForShutdown();
+
+    return 0;
 }

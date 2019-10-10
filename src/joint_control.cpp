@@ -1,30 +1,8 @@
-// Copyright 1996-2019 Cyberbotics Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// line_following example
-// this example reproduce the e-puck_line_demo example
-// but uses the ROS controller on the e-puck instead.
-// The node connect to an e-puck and then uses values from its sensors
-// to follow and line and get around obstacles.
-// the duration of the example is given as argument to the node.
-
-#include <ros/ros.h>
-
-#include <csignal>
 #include <utility>
 
+#include <ros/ros.h>
 #include <std_msgs/String.h>
+#include <urdf/model.h>
 
 #include <webots_ros/set_float.h>
 
@@ -32,8 +10,6 @@
 
 using namespace std;
 using namespace ros;
-
-#define TIME_STEP = 32
 
 //------------------------------------------------------------------------------
 //
@@ -96,3 +72,25 @@ namespace webots_arm {
     }
 }
 
+////////////////////////////////////////////
+// Main
+int main(int argc, char **argv) {
+    std::string controllerName;
+    ros::init(argc, argv, "joint_control", ros::init_options::AnonymousName);
+
+    const auto &msg = ros::topic::waitForMessage<std_msgs::String>("model_name", ros::Duration(5));
+    std::string modelName = msg->data;
+    ROS_DEBUG_STREAM("Using robot model " << modelName);
+
+    // gets the location of the robot description on the parameter server
+    urdf::Model model;
+    if (!model.initParam("robot_description"))
+        return 1;
+
+    webots_arm::JointControl joint_control(modelName, model);
+    ros::AsyncSpinner spinner(6);
+    spinner.start();
+    ros::waitForShutdown();
+
+    return 0;
+}

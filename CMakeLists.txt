@@ -37,14 +37,17 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${orocos_kdl_INCLUDE_DIRS} ${
 link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 add_executable(joint_control
-        src/arm_control.cpp
         src/joint_control.cpp
-        src/camera_control.cpp
         )
 add_dependencies(joint_control ${catkin_EXPORTED_TARGETS})
 target_link_libraries(joint_control ${catkin_LIBRARIES})
 
-install(TARGETS joint_control
+add_executable(camera_control
+        src/camera_control.cpp)
+add_dependencies(camera_control ${catkin_EXPORTED_TARGETS})
+target_link_libraries(camera_control ${catkin_LIBRARIES})
+
+install(TARGETS joint_control camera_control
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
  install(DIRECTORY include/${PROJECT_NAME}/
