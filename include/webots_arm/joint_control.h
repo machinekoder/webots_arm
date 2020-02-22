@@ -5,31 +5,26 @@
 #ifndef ROS_WS_JOINT_CONTROL_H
 #define ROS_WS_JOINT_CONTROL_H
 
-#include <urdf/model.h>
+#include <mutex>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-
-using namespace std;
-using namespace ros;
-
-typedef boost::shared_ptr<sensor_msgs::JointState const> JointStateConstPtr;
-typedef std::map<std::string, urdf::JointMimicSharedPtr> MimicMap;
 
 namespace webots_arm {
     class JointControl {
     public:
-        explicit JointControl(std::string model_name,
-                              const urdf::Model &model = urdf::Model());
+        explicit JointControl(std::string model_name);
 
         ~JointControl();
 
-    protected:
-        virtual void callbackJointState(const JointStateConstPtr &state, const std::string &name);
+    private:
+        virtual void jointStateCallback(const sensor_msgs::JointStateConstPtr &state);
 
-        std::vector<Subscriber> joint_state_subs_{};
+        ros::Subscriber joint_state_sub_;
+        ros::ServiceClient joint_position_client_;
         std::string model_name_;
+        std::string name_;
 
-        std::map<std::string, ros::ServiceClient> joint_position_clients_{};
+        std::mutex s_mutex_;
     };
 }
 

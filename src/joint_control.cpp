@@ -2,14 +2,10 @@
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
-#include <urdf/model.h>
 
 #include <webots_ros/set_float.h>
 
 #include "webots_arm/joint_control.h"
-
-using namespace std;
-using namespace ros;
 
 //------------------------------------------------------------------------------
 //
@@ -18,35 +14,33 @@ using namespace ros;
 //------------------------------------------------------------------------------
 
 namespace webots_arm {
-    JointControl::JointControl(std::string model_name,
-                               const urdf::Model &model)
+    JointControl::JointControl(std::string model_name)
             : model_name_(std::move(model_name)) {
+        ros::NodeHandle nh("~");
         ros::NodeHandle n;
+
+        name_ = nh.param<std::string>("name", "joint_1");
 
         // Setting tcpNoNelay tells the subscriber to ask publishers that connect
         // to set TCP_NODELAY on their side. This prevents some joint_state messages
         // from being bundled together, increasing the latency of one of the messages.
         ros::TransportHints transport_hints;
         transport_hints.tcpNoDelay(true);
-
-
-        for (auto &joint : model.joints_) {
-            if (joint.second->type == urdf::Joint::FIXED) {
-                continue;
-            }
-            // subscribe to joint state
-            boost::function<void (const JointStateConstPtr&)> f (boost::bind(&JointControl::callbackJointState, this, _1, joint.first));
-            joint_state_subs_.push_back(n.subscribe("joint_states", 1, f, VoidConstPtr(), transport_hints));
-            // create service client
-            joint_position_clients_[joint.first] = n.serviceClient<webots_ros::set_float>(
-                    model_name_ + "/" + joint.first + "/set_position");
-            ROS_INFO_STREAM("created joint position client " << joint.first);
-        }
+        // subscribe to joint state
+        joint_state_sub_ = n.subscribe("joint_states", 1, &JointControl::jointStateCallback, this, transport_hints);
+        // create service client
+        joint_position_client_ = n.serviceClient<webots_ros::set_float>(
+            model_name_ + "/" + name_ + "/set_position");
+        joint_position_client_.waitForExistence();
+        ROS_INFO_STREAM("created joint position client " << name_);
     }
 
     JointControl::~JointControl() = default;
 
-    void JointControl::callbackJointState(const JointStateConstPtr &state, const std::string &name) {
+    void JointControl::jointStateCallback(const sensor_msgs::JointStateConstPtr &state) {
+        std::unique_lock<std::mutex> lock(s_mutex_, std::try_to_lock);
+        if (!lock.owns_lock()) return;
+
         if (state->name.size() != state->position.size()) {
             if (state->position.empty()) {
                 const int throttleSeconds = 300;
@@ -63,9 +57,9 @@ namespace webots_arm {
 
         webots_ros::set_float jointSrv;
         for (size_t i = 0; i < state->name.size(); i++) {
-            if (state->name[i] == name) {
+            if (state->name[i] == name_) {
                 jointSrv.request.value = state->position[i];
-                joint_position_clients_.at(name).call(jointSrv);
+                joint_position_client_.call(jointSrv);
                 break;
             }
         }
@@ -76,21 +70,14 @@ namespace webots_arm {
 // Main
 int main(int argc, char **argv) {
     std::string controllerName;
-    ros::init(argc, argv, "joint_control", ros::init_options::AnonymousName);
+    ros::init(argc, argv, "joint_control");
 
     const auto &msg = ros::topic::waitForMessage<std_msgs::String>("model_name", ros::Duration(5));
     std::string modelName = msg->data;
-    ROS_DEBUG_STREAM("Using robot model " << modelName);
+    ROS_INFO_STREAM("Using robot model " << modelName);
 
-    // gets the location of the robot description on the parameter server
-    urdf::Model model;
-    if (!model.initParam("robot_description"))
-        return 1;
-
-    webots_arm::JointControl joint_control(modelName, model);
-    ros::AsyncSpinner spinner(6);
-    spinner.start();
-    ros::waitForShutdown();
+    webots_arm::JointControl joint_control(modelName);
+    ros::spin();
 
     return 0;
 }

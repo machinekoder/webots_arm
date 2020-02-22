@@ -9,8 +9,6 @@ find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED
              COMPONENTS webots_ros
                         roscpp
-        rosconsole
-        rostime
         tf
         tf2_ros
         tf2_kdl
@@ -24,8 +22,6 @@ find_package(urdfdom_headers REQUIRED)
 catkin_package(INCLUDE_DIRS include DEPENDS
                webots_ros
                roscpp
-        rosconsole
-        rostime
         tf2_ros
         tf2_kdl
         kdl_parser
@@ -47,10 +43,15 @@ add_executable(camera_control
 add_dependencies(camera_control ${catkin_EXPORTED_TARGETS})
 target_link_libraries(camera_control ${catkin_LIBRARIES})
 
-install(TARGETS joint_control camera_control
+add_executable(pointcloud_control
+        src/pointcloud_control.cpp)
+add_dependencies(pointcloud_control ${catkin_EXPORTED_TARGETS})
+target_link_libraries(pointcloud_control ${catkin_LIBRARIES})
+
+install(TARGETS joint_control camera_control pointcloud_control
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
- install(DIRECTORY include/${PROJECT_NAME}/
+install(DIRECTORY include/${PROJECT_NAME}/
          DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
          FILES_MATCHING
          PATTERN "*.h"
