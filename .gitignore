@@ -227,3 +227,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# CLion
+cmake-build-debug/
