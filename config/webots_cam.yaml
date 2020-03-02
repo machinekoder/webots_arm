@@ -1,6 +1,6 @@
 image_width: 1920
 image_height: 1080
-camera_name: camera
+camera_name: rgb_camera
 camera_matrix:
   rows: 3
   cols: 3

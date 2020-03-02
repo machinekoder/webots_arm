@@ -8,7 +8,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED
              COMPONENTS webots_ros
-                        roscpp
+        cv_bridge
+        roscpp
         tf
         tf2_ros
         tf2_kdl
@@ -20,8 +21,9 @@ find_package(Eigen3 REQUIRED)
 find_package(urdfdom_headers REQUIRED)
 
 catkin_package(INCLUDE_DIRS include DEPENDS
-               webots_ros
-               roscpp
+        webots_ros
+        cv_bridge
+        roscpp
         tf2_ros
         tf2_kdl
         kdl_parser

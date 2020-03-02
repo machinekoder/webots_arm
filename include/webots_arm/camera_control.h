@@ -17,7 +17,6 @@ namespace webots_arm {
 
         ~CameraControl();
 
-        //protected:
     private:
         ros::Subscriber image_sub_;
         ros::Timer publish_timer_;

@@ -16,12 +16,11 @@ namespace webots_arm {
             : model_name_(std::move(model_name)), subscriber_num_(0) {
         ros::NodeHandle nh("~");
         ros::NodeHandle n;
-        const auto image_topic = nh.param<std::string>("image_topic", "/camera/image_raw");
         camera_name_ = nh.param<std::string>("camera_name", "camera");
         const auto camera_info_url = nh.param<std::string>("camera_info_url", "");
         frame_id_ = nh.param<std::string>("frame_id", "camera_link");
         fps_ = nh.param<int>("fps", 8);
-        buffer_queue_size_ = nh.param<int>("buffer_queue_size", 10);
+        buffer_queue_size_ = nh.param<int>("buffer_queue_size", 1);
 
         // initialize camera info publisher
         camera_info_manager::CameraInfoManager cam_info_manager(n, camera_name_, camera_info_url);
@@ -37,7 +36,7 @@ namespace webots_arm {
                 boost::bind(&CameraControl::disconnectionCallback, this, _1);
         ros::SubscriberStatusCallback info_disconnect_cb =
                 boost::bind(&CameraControl::infoDisconnectionCallback, this, _1);
-        pub_ = image_transport::ImageTransport(n).advertiseCamera(image_topic, 1, connect_cb, disconnect_cb,
+        pub_ = image_transport::ImageTransport(nh).advertiseCamera("image_raw", 1, connect_cb, disconnect_cb,
                                                                   info_connect_cb, info_disconnect_cb);
 
         camera_enable_client_ = n.serviceClient<webots_ros::set_int>(model_name_ + "/" + camera_name_ + "/enable");
@@ -92,7 +91,7 @@ namespace webots_arm {
         else {
             ROS_ERROR("Failed to call service to stop camera.");
         }
-        while (image_queue_.size() > 0) {
+        while (!image_queue_.empty()) {
             image_queue_.pop();
         }
         image_.reset();

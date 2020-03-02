@@ -1,27 +1,23 @@
 <?xml version="1.0"?>
 <launch>
   <!-- name of the camera -->
-  <arg name="camera_name" default="depth_camera" />
+  <arg name="camera_name" default="rgb_camera" />
   <!-- frame_id for the camera -->
-  <arg name="frame_id" default="depth_camera_link" />
+  <arg name="frame_id" default="rgb_camera_link" />
   <!-- By default, calibrations are stored to file://${ROS_HOME}/camera_info/${NAME}.yaml
    To use your own fill this arg with the corresponding url, e.g.:
    "file:///$(find your_camera_package)/config/your_camera.yaml" -->
-  <arg name="camera_info_url" default="file:///$(find webots_arm)/config/webots_depth_cam.yaml" />
-  <!-- Distance at which points should be clipped. Choose a smaller value than max distance for best results -->
-  <arg name="clip_distance" default="4.0"/>
+  <arg name="camera_info_url" default="file:///$(find webots_arm)/config/webots_cam.yaml" />
   <!-- FPS of the published camera image -->
   <arg name="fps" default="8"/>
   <!-- size of the image/cloud buffer -->
   <arg name="buffer_queue_size" default="1"/>
 
-  <node name="$(arg camera_name)" pkg="webots_arm" type="pointcloud_control" output="screen" required="true">
+  <node name="$(arg camera_name)" pkg="webots_arm" type="camera_control" output="screen" required="true">
     <param name="frame_id" type="string" value="$(arg frame_id)" />
     <param name="camera_name" type="string" value="$(arg camera_name)" />
     <param name="camera_info_url" type="string" value="$(arg camera_info_url)" />
-    <param name="fps" type="int" value="$(arg fps)" />
-    <param name="clip_distance" type="double" value="$(arg clip_distance)"/>
+    <param name="fps" type="int" value="8" />
     <param name="buffer_queue_size" type="int" value="$(arg buffer_queue_size)"/>
-    <param name="enable_cloud" type="bool" value="false"/>
   </node>
 </launch>
