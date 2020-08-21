@@ -1,13 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- start Webots -->
-  <arg name="no-gui" default="false," doc="Start Webots with minimal GUI"/>
-  <include file="$(find webots_ros)/launch/webots.launch">
-    <arg name="mode" value="realtime"/>
-    <arg name="no-gui" value="$(arg no-gui)"/>
-    <arg name="world" value="$(env HOME)/projects/webots/borunte/worlds/with_robot_and_ezgripper_cupboard_barcodes.wbt"/>
-  </include>
-
   <arg name="joint_update_rate" default="25" />
   <node name="$(anon joint_state_throttle)" pkg="topic_tools" type="throttle"
         args="messages joint_states $(arg joint_update_rate) joint_states_sim" required="true">
