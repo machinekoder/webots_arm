@@ -170,6 +170,7 @@ namespace webots_arm {
     void CameraControl::imageCallback(const sensor_msgs::ImagePtr &image) {
         std::lock_guard<std::mutex> guard(q_mutex);
 
+        image->header.stamp = ros::Time::now();
         while (image_queue_.size() > buffer_queue_size_) {
             image_queue_.pop();
         }
